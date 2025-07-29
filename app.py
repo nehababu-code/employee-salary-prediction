@@ -5,7 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 import os
 
-# --- Hide Streamlit Footer & Menu ---
+# --- Hide Footer & Menu ---
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Page Management using Session State ---
+# --- Page State Management ---
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
@@ -24,9 +24,9 @@ if st.session_state.page == 'home':
     if os.path.exists("banner.jpg"):
         st.image("banner.jpg", use_column_width=True)
     else:
-        st.info("Welcome banner not found. Please upload a file named `banner.jpg`")
+        st.warning("👋 Upload a file named **banner.jpg** in the app folder to display the welcome image.")
 
-    st.markdown("This app predicts whether an employee earns more than $50K/year.")
+    st.markdown("This app predicts whether an employee earns more than $50K/year based on various inputs.")
 
     if st.button("🔮 Predict Salary"):
         st.session_state.page = 'predict'
@@ -35,39 +35,33 @@ if st.session_state.page == 'home':
 elif st.session_state.page == 'predict':
     st.title("🔍 Employee Income Predictor")
 
-    # Load dataset
     try:
         data = pd.read_csv("adult 3.csv")
     except FileNotFoundError:
-        st.error("Dataset 'adult 3.csv' not found. Please upload it to the app folder.")
+        st.error("Dataset 'adult 3.csv' not found. Please upload it.")
         st.stop()
 
-    # Clean data
     if 'educational-num' in data.columns:
         data.drop('educational-num', axis=1, inplace=True)
 
     data.replace(' ?', pd.NA, inplace=True)
     data.dropna(inplace=True)
 
-    # Store original categories
     original_values = {}
     for col in data.select_dtypes(include='object').columns:
         original_values[col] = sorted([val for val in data[col].unique() if val.strip() != '?'])
 
-    # Encode data
     label_encoders = {}
     for col in data.select_dtypes(include='object').columns:
         le = LabelEncoder()
         data[col] = le.fit_transform(data[col])
         label_encoders[col] = le
 
-    # Train model
     X = data.drop('income', axis=1)
     y = data['income']
     model = RandomForestClassifier()
     model.fit(X, y)
 
-    # --- User Input UI ---
     st.header("Enter Employee Details")
 
     def get_user_input():
