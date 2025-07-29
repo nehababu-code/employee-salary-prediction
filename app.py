@@ -21,9 +21,11 @@ for column in data.select_dtypes(include=['object']).columns:
     data[column] = le.fit_transform(data[column])
     label_encoders[column] = le
 
-# Split into train/test
-X = data.drop('salary', axis=1)
-y = data['salary']
+# ✅ FIXED: Replace 'salary' with 'income'
+X = data.drop('income', axis=1)
+y = data['income']
+
+# Train/test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Train model
@@ -32,9 +34,9 @@ model.fit(X_train, y_train)
 
 # Streamlit UI
 st.title("Employee Salary Prediction")
-st.write("Enter employee details to predict if salary is >50K or <=50K")
+st.write("Enter employee details to predict if income is >50K or <=50K")
 
-# User Input Form
+# User input form
 def user_input():
     age = st.number_input('Age', 18, 100, 30)
     workclass = st.selectbox('Workclass', label_encoders['workclass'].classes_)
@@ -66,5 +68,5 @@ input_df = user_input()
 
 if st.button("Predict Salary"):
     prediction = model.predict(input_df)[0]
-    result = label_encoders['salary'].inverse_transform([prediction])[0]
-    st.success(f"Predicted Salary: {result}")
+    result = label_encoders['income'].inverse_transform([prediction])[0]
+    st.success(f"Predicted Income: {result}")
