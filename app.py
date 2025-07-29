@@ -1,52 +1,58 @@
 import streamlit as st
 import pandas as pd
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-import os
 
-# --- Hide Footer & Menu ---
+# --- Streamlit page configuration ---
+st.set_page_config(page_title="Employee Salary Predictor", layout="centered")
+
+# --- Hide Streamlit footer and hamburger menu ---
 st.markdown("""
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- Page State Management ---
+# --- Page Routing using session state ---
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# --- Home Page ---
+# --- HOME PAGE ---
 if st.session_state.page == 'home':
     st.title("💼 Welcome to Employee Salary Predictor")
 
+    # Display banner if available
     if os.path.exists("banner.jpg"):
         st.image("banner.jpg", use_column_width=True)
     else:
         st.warning("👋 Upload a file named **banner.jpg** in the app folder to display the welcome image.")
 
-    st.markdown("This app predicts whether an employee earns more than $50K/year based on various inputs.")
+    st.markdown("This app predicts whether an employee earns more than $50K/year based on user inputs.")
 
     if st.button("🔮 Predict Salary"):
         st.session_state.page = 'predict'
 
-# --- Prediction Page ---
+# --- PREDICTION PAGE ---
 elif st.session_state.page == 'predict':
-    st.title("🔍 Employee Income Predictor")
+    st.title("🔍 Salary Prediction")
 
     try:
         data = pd.read_csv("adult 3.csv")
     except FileNotFoundError:
-        st.error("Dataset 'adult 3.csv' not found. Please upload it.")
+        st.error("Dataset 'adult 3.csv' not found. Please upload it in the app folder.")
         st.stop()
 
+    # Clean and preprocess
     if 'educational-num' in data.columns:
         data.drop('educational-num', axis=1, inplace=True)
 
     data.replace(' ?', pd.NA, inplace=True)
     data.dropna(inplace=True)
 
+    # Capture original values for dropdowns
     original_values = {}
     for col in data.select_dtypes(include='object').columns:
         original_values[col] = sorted([val for val in data[col].unique() if val.strip() != '?'])
@@ -62,7 +68,8 @@ elif st.session_state.page == 'predict':
     model = RandomForestClassifier()
     model.fit(X, y)
 
-    st.header("Enter Employee Details")
+    # --- User input form ---
+    st.subheader("Enter Employee Details")
 
     def get_user_input():
         age = st.slider("Age", 18, 70, 30)
@@ -95,9 +102,9 @@ elif st.session_state.page == 'predict':
     input_df = get_user_input()
 
     if st.button("📊 Predict"):
-        pred = model.predict(input_df)[0]
-        result = label_encoders['income'].inverse_transform([pred])[0]
-        st.success(f"Predicted Income: **{result}**")
+        prediction = model.predict(input_df)[0]
+        result = label_encoders['income'].inverse_transform([prediction])[0]
+        st.success(f"💰 Predicted Income: **{result}**")
 
     if st.button("⬅️ Back to Home"):
         st.session_state.page = 'home'
