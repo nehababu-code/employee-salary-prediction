@@ -1,94 +1,109 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import os
-import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
 
-# Set Streamlit page configuration
-st.set_page_config(page_title="Employee Salary Predictor", page_icon="💼", layout="centered")
+st.set_page_config(page_title="Employee Salary Prediction", layout="centered")
 
-# Load image (optional fallback)
-def load_banner():
-    banner_path = "banner.jpg"  # Ensure this file exists in the same folder
-    if os.path.exists(banner_path):
-        st.image(banner_path, use_column_width=True)
+# Load data
+@st.cache_data
+def load_data():
+    return pd.read_csv("adult 3.csv")
+
+# Encode categorical features
+@st.cache_data
+def preprocess_data(data):
+    label_encoders = {}
+    for column in data.select_dtypes(include='object'):
+        le = LabelEncoder()
+        data[column] = le.fit_transform(data[column])
+        label_encoders[column] = le
+    return data, label_encoders
+
+# Predict salary function
+def predict(model, label_encoders, input_df):
+    input_encoded = input_df.copy()
+    for col in input_encoded.columns:
+        if col in label_encoders:
+            le = label_encoders[col]
+            input_encoded[col] = le.transform([input_encoded[col][0]])
+    return model.predict(input_encoded)[0]
+
+# Page 1: Home
+def home():
+    st.title("💼 Welcome to Employee Salary Predictor")
+    if os.path.exists("banner.jpg"):
+        st.image("banner.jpg", use_column_width=True)
     else:
-        st.warning("👋 Upload a file named `banner.jpg` in the app folder to display the welcome image.")
-
-# Main homepage
-def main():
-    st.markdown("## 💼 Welcome to Employee Salary Predictor")
-
-    load_banner()
-
-    st.markdown("""
-    This app predicts whether an employee earns **more than $50K/year** or not based on their profile.
+        st.warning("👋 Upload a file named **banner.jpg** in the app folder to display the welcome image.")
     
-    👉 Click the button below to continue to the prediction form.
-    """)
-
-    if st.button("🔍 Predict Salary"):
+    st.markdown("This app predicts whether an employee earns more than $50K/year based on demographic features.")
+    
+    if st.button("🔮 Predict Salary"):
         st.session_state.page = "predict"
 
-# Prediction page
+# Page 2: Prediction
 def prediction_page():
-    st.markdown("## 🧠 Salary Prediction")
+    st.title("🔮 Salary Prediction")
 
-    # Load data for encoding consistency
-    data = pd.read_csv("adult 3.csv")
-
-    # Drop rows with missing values
-    data = data.dropna()
-
-    # Split into features and target
-    X = data.drop('class', axis=1)
-    y = data['class']
-
-    # Encode categorical variables
-    from sklearn.preprocessing import LabelEncoder
-    label_encoders = {}
-    for column in X.select_dtypes(include=['object']).columns:
-        le = LabelEncoder()
-        X[column] = le.fit_transform(X[column])
-        label_encoders[column] = le
-
-    # Train a model (Random Forest for demo)
-    from sklearn.ensemble import RandomForestClassifier
+    # Load and process
+    data = load_data()
+    processed_data, label_encoders = preprocess_data(data)
+    X = processed_data.drop('income', axis=1)
+    y = processed_data['income']
     model = RandomForestClassifier()
     model.fit(X, y)
 
-    # Input from user
+    # Input UI
     def user_input():
         age = st.slider('Age', 18, 90, 30)
         workclass = st.selectbox('Workclass', label_encoders['workclass'].classes_)
         education = st.selectbox('Education', label_encoders['education'].classes_)
+        marital = st.selectbox('Marital Status', label_encoders['marital-status'].classes_)
         occupation = st.selectbox('Occupation', label_encoders['occupation'].classes_)
-        sex = st.selectbox('Sex', label_encoders['sex'].classes_)
+        relationship = st.selectbox('Relationship', label_encoders['relationship'].classes_)
+        race = st.selectbox('Race', label_encoders['race'].classes_)
+        gender = st.selectbox('Gender', label_encoders['gender'].classes_)
+        hours = st.slider('Hours per week', 1, 99, 40)
+        country = st.selectbox('Native Country', label_encoders['native-country'].classes_)
+        capital_gain = st.number_input("Capital Gain", 0, 100000, 0)
+        capital_loss = st.number_input("Capital Loss", 0, 100000, 0)
 
-        input_dict = {
-            'age': age,
-            'workclass': label_encoders['workclass'].transform([workclass])[0],
-            'education': label_encoders['education'].transform([education])[0],
-            'occupation': label_encoders['occupation'].transform([occupation])[0],
-            'sex': label_encoders['sex'].transform([sex])[0]
-        }
-
-        return pd.DataFrame([input_dict])
+        return pd.DataFrame({
+            'age': [age],
+            'workclass': [workclass],
+            'fnlwgt': [200000],  # Placeholder
+            'education': [education],
+            'educational-num': [10],  # Placeholder
+            'marital-status': [marital],
+            'occupation': [occupation],
+            'relationship': [relationship],
+            'race': [race],
+            'gender': [gender],
+            'capital-gain': [capital_gain],
+            'capital-loss': [capital_loss],
+            'hours-per-week': [hours],
+            'native-country': [country]
+        })
 
     input_df = user_input()
 
-    # Predict
-    prediction = model.predict(input_df)[0]
-    prediction_proba = model.predict_proba(input_df)[0]
+    if st.button("🎯 Predict"):
+        result = predict(model, label_encoders, input_df)
+        label = label_encoders['income'].inverse_transform([result])[0]
+        st.success(f"💰 Predicted Salary Category: **{label}**")
 
-    result = "💰 Earns >50K/year" if prediction == ">50K" else "📉 Earns ≤50K/year"
-    st.success(f"Prediction: {result}")
-    st.info(f"Confidence: {prediction_proba[prediction == model.classes_][0]*100:.2f}%")
+    if st.button("🏠 Back to Home"):
+        st.session_state.page = "home"
 
-# Handle navigation
-if "page" not in st.session_state:
-    st.session_state.page = "main"
+# App Router
+if 'page' not in st.session_state:
+    st.session_state.page = "home"
 
-if st.session_state.page == "main":
-    main()
-else:
+if st.session_state.page == "home":
+    home()
+elif st.session_state.page == "predict":
     prediction_page()
