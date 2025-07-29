@@ -7,13 +7,18 @@ from sklearn.ensemble import RandomForestClassifier
 # Load dataset
 data = pd.read_csv("adult 3.csv")
 
-# Drop unnecessary columns
+# Drop column not needed
 if 'educational-num' in data.columns:
     data.drop('educational-num', axis=1, inplace=True)
 
 # Clean missing values
 data.replace(' ?', pd.NA, inplace=True)
 data.dropna(inplace=True)
+
+# Save original categories before encoding
+original_values = {}
+for col in data.select_dtypes(include='object').columns:
+    original_values[col] = sorted(data[col].unique())  # sorted for better dropdown
 
 # Encode categorical columns
 label_encoders = {}
@@ -33,25 +38,25 @@ model.fit(X_train, y_train)
 
 # Streamlit UI
 st.title("Employee Income Prediction")
-st.write("Fill in the employee details:")
+st.write("Enter employee details below:")
 
 def user_input():
     age = st.number_input("Age", 18, 100, 30)
-    workclass = st.selectbox("Workclass", label_encoders['workclass'].classes_)
-    education = st.selectbox("Education", label_encoders['education'].classes_)
-    marital_status = st.selectbox("Marital Status", label_encoders['marital-status'].classes_)
-    occupation = st.selectbox("Occupation", label_encoders['occupation'].classes_)
-    relationship = st.selectbox("Relationship", label_encoders['relationship'].classes_)
-    race = st.selectbox("Race", label_encoders['race'].classes_)
-    gender = st.selectbox("Gender", label_encoders['gender'].classes_)
+    workclass = st.selectbox("Workclass", original_values['workclass'])
+    education = st.selectbox("Education", original_values['education'])
+    marital_status = st.selectbox("Marital Status", original_values['marital-status'])
+    occupation = st.selectbox("Occupation", original_values['occupation'])
+    relationship = st.selectbox("Relationship", original_values['relationship'])
+    race = st.selectbox("Race", original_values['race'])
+    gender = st.selectbox("Gender", original_values['gender'])
     hours_per_week = st.slider("Hours per week", 1, 99, 40)
-    native_country = st.selectbox("Native Country", label_encoders['native-country'].classes_)
+    native_country = st.selectbox("Native Country", original_values['native-country'])
 
-    # Convert input to encoded dataframe
-    data_input = {
+    # Encode selections
+    input_data = {
         'age': age,
         'workclass': label_encoders['workclass'].transform([workclass])[0],
-        'fnlwgt': 200000,  # fixed value or optional user input
+        'fnlwgt': 200000,  # Fixed or optional
         'education': label_encoders['education'].transform([education])[0],
         'marital-status': label_encoders['marital-status'].transform([marital_status])[0],
         'occupation': label_encoders['occupation'].transform([occupation])[0],
@@ -63,9 +68,10 @@ def user_input():
         'hours-per-week': hours_per_week,
         'native-country': label_encoders['native-country'].transform([native_country])[0],
     }
-    return pd.DataFrame([data_input])
 
-# Make prediction
+    return pd.DataFrame([input_data])
+
+# Predict and display
 input_df = user_input()
 
 if st.button("Predict Income"):
