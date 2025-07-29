@@ -1,74 +1,81 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
-# Set page configuration
-st.set_page_config(page_title="Employee Salary Predictor", layout="centered")
-
 # Load dataset
-@st.cache_data
-def load_data():
-    df = pd.read_csv("adult 3.csv")
-    return df
+data = pd.read_csv("adult 3.csv")
 
-data = load_data()
+# Drop unneeded column
+if 'educational-num' in data.columns:
+    data.drop('educational-num', axis=1, inplace=True)
 
-# Show banner image
-st.title("💼 Welcome to Employee Salary Predictor")
-try:
-    st.image("banner.jpg", use_container_width=True)
-except:
-    st.warning("👋 Upload a file named banner.jpg in the app folder to display the welcome image.")
+# Replace ' ?' with NaN and drop those rows
+data.replace(' ?', pd.NA, inplace=True)
+data.dropna(inplace=True)
 
-# Button to go to prediction page
-if st.button("👉 Predict Salary"):
-    st.session_state.page = "predict"
+# Save original categories for dropdowns (excluding '?')
+original_values = {}
+for col in data.select_dtypes(include='object').columns:
+    clean_vals = [val for val in data[col].unique() if val.strip() != '?']
+    original_values[col] = sorted(clean_vals)
 
-# Switch to prediction page if user clicked button
-if "page" in st.session_state and st.session_state.page == "predict":
+# Encode categorical columns
+label_encoders = {}
+for col in data.select_dtypes(include='object').columns:
+    le = LabelEncoder()
+    data[col] = le.fit_transform(data[col])
+    label_encoders[col] = le
 
-    st.header("📊 Salary Prediction Form")
+# Prepare data for training
+X = data.drop('income', axis=1)
+y = data['income']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Separate features and target
-    X = data.drop('income', axis=1)
-    y = data['income']
+# Train model
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
 
-    # Encode categorical variables
-    label_encoders = {}
-    for column in X.select_dtypes(include=['object']).columns:
-        le = LabelEncoder()
-        X[column] = le.fit_transform(X[column])
-        label_encoders[column] = le
+# Streamlit UI
+st.title("💼 Employee Income Prediction App")
+st.write("Enter employee details to predict income:")
 
-    le_target = LabelEncoder()
-    y = le_target.fit_transform(y)
+def user_input():
+    age = st.number_input("Age", 18, 100, 30)
+    workclass = st.selectbox("Workclass", original_values['workclass'])
+    education = st.selectbox("Education", original_values['education'])
+    marital_status = st.selectbox("Marital Status", original_values['marital-status'])
+    occupation = st.selectbox("Occupation", original_values['occupation'])
+    relationship = st.selectbox("Relationship", original_values['relationship'])
+    race = st.selectbox("Race", original_values['race'])
+    gender = st.selectbox("Gender", original_values['gender'])
+    hours_per_week = st.slider("Hours per week", 1, 99, 40)
+    native_country = st.selectbox("Native Country", original_values['native-country'])
 
-    # Train the model
-    model = RandomForestClassifier()
-    model.fit(X, y)
+    # Encode selections using label encoders
+    input_data = {
+        'age': age,
+        'workclass': label_encoders['workclass'].transform([workclass])[0],
+        'fnlwgt': 200000,  # Fixed value
+        'education': label_encoders['education'].transform([education])[0],
+        'marital-status': label_encoders['marital-status'].transform([marital_status])[0],
+        'occupation': label_encoders['occupation'].transform([occupation])[0],
+        'relationship': label_encoders['relationship'].transform([relationship])[0],
+        'race': label_encoders['race'].transform([race])[0],
+        'gender': label_encoders['gender'].transform([gender])[0],
+        'capital-gain': 0,  # Can make these user inputs later
+        'capital-loss': 0,
+        'hours-per-week': hours_per_week,
+        'native-country': label_encoders['native-country'].transform([native_country])[0],
+    }
 
-    # Collect user input
-    def user_input():
-        user_data = {}
-        for column in X.columns:
-            if column in label_encoders:
-                options = list(label_encoders[column].classes_)
-                user_data[column] = st.selectbox(column.capitalize(), options)
-            else:
-                user_data[column] = st.number_input(column.capitalize(), value=float(data[column].mean()))
-        return pd.DataFrame([user_data])
+    return pd.DataFrame([input_data])
 
-    input_df = user_input()
+# Get user input and make prediction
+input_df = user_input()
 
-    # Encode input
-    for column in label_encoders:
-        input_df[column] = label_encoders[column].transform(input_df[column])
-
-    # Make prediction
-    if st.button("🔍 Predict"):
-        prediction = model.predict(input_df)
-        result = le_target.inverse_transform(prediction)[0]
-        st.success(f"💰 Predicted Salary: {result}")
+if st.button("Predict Income"):
+    prediction = model.predict(input_df)[0]
+    result = label_encoders['income'].inverse_transform([prediction])[0]
+    st.success(f"🧾 Predicted Income: {result}")
