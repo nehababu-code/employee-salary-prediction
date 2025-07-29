@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
+import os
 
 # Hide Streamlit's default menu and footer
 hide_st_style = """
@@ -17,9 +18,14 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# ----------------------------- FRONT PAGE -----------------------------
+# ------------------------ FRONT PAGE ------------------------
 if st.session_state.page == 'home':
-    st.image("banner.jpg", use_column_width=True)
+    # Show image if available
+    if os.path.exists("banner.jpg"):
+        st.image("banner.jpg", use_column_width=True)
+    else:
+        st.warning("⚠️ Banner image not found (banner.jpg)")
+
     st.title("💼 Welcome to Employee Salary Prediction App")
     st.markdown("Click the button below to start predicting income based on employee details.")
 
@@ -27,7 +33,7 @@ if st.session_state.page == 'home':
         st.session_state.page = 'predict'
         st.experimental_rerun()
 
-# ----------------------------- PREDICTION PAGE -----------------------------
+# ------------------------ PREDICTION PAGE ------------------------
 elif st.session_state.page == 'predict':
     st.title("🔍 Employee Income Predictor")
     st.markdown("Provide employee details to predict whether their income is **more than 50K** or not.")
@@ -57,7 +63,7 @@ elif st.session_state.page == 'predict':
     model = RandomForestClassifier()
     model.fit(X, y)
 
-    # Collect user input
+    # User input function
     def user_input():
         age = st.number_input("Age", 18, 100, 30)
         workclass = st.selectbox("Workclass", original_values['workclass'])
@@ -73,7 +79,7 @@ elif st.session_state.page == 'predict':
         input_data = {
             'age': age,
             'workclass': label_encoders['workclass'].transform([workclass])[0],
-            'fnlwgt': 200000,  # Dummy value
+            'fnlwgt': 200000,
             'education': label_encoders['education'].transform([education])[0],
             'marital-status': label_encoders['marital-status'].transform([marital_status])[0],
             'occupation': label_encoders['occupation'].transform([occupation])[0],
