@@ -4,64 +4,62 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
-# Set page config
-st.set_page_config(page_title="Employee Salary Predictor", layout="centered")
+# Page state handling
+if 'page' not in st.session_state:
+    st.session_state.page = 'welcome'
 
-# Function to load and prepare data
-@st.cache_data
-def load_data():
+# === WELCOME PAGE ===
+if st.session_state.page == 'welcome':
+    st.title("💼 Employee Salary Predictor")
+
+    try:
+        st.image("banner.jpg", use_container_width=True)
+    except:
+        st.warning("👋 Upload a file named `banner.jpg` in the app folder to display the welcome image.")
+
+    st.markdown("Welcome! This app predicts whether an employee earns more than $50K/year based on their profile.")
+
+    if st.button("🚀 Predict Salary"):
+        st.session_state.page = 'predict'
+        st.experimental_rerun()
+
+# === PREDICTION PAGE ===
+elif st.session_state.page == 'predict':
+    st.title("📊 Predict Employee Income")
+
+    # Load dataset
     data = pd.read_csv("adult 3.csv")
 
+    # Drop unnecessary column if it exists
     if 'educational-num' in data.columns:
         data.drop('educational-num', axis=1, inplace=True)
 
+    # Replace missing values and drop rows
     data.replace(' ?', pd.NA, inplace=True)
     data.dropna(inplace=True)
 
+    # Store original values for dropdowns
     original_values = {}
     for col in data.select_dtypes(include='object').columns:
         clean_vals = [val for val in data[col].unique() if val.strip() != '?']
         original_values[col] = sorted(clean_vals)
 
+    # Label encode categorical columns
     label_encoders = {}
     for col in data.select_dtypes(include='object').columns:
         le = LabelEncoder()
         data[col] = le.fit_transform(data[col])
         label_encoders[col] = le
 
-    return data, original_values, label_encoders
+    # Train model
+    X = data.drop('income', axis=1)
+    y = data['income']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Load and prepare data
-data, original_values, label_encoders = load_data()
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
 
-# Train model
-X = data.drop('income', axis=1)
-y = data['income']
-model = RandomForestClassifier()
-model.fit(X, y)
-
-# Routing: use query parameters
-query_params = st.query_params
-page = query_params.get("page", "home")
-
-# Page 1: Home page with banner and button
-if page == "home":
-    st.title("💼 Welcome to the Employee Salary Predictor")
-
-    try:
-        st.image("banner.jpg", use_container_width=True)
-    except:
-        st.warning("👋 Upload a file named banner.jpg in the app folder to show the welcome image.")
-
-    st.markdown("Click the button below to predict employee salary based on details:")
-
-    if st.button("🔮 Predict Salary"):
-        st.switch_page("?page=predict")
-
-# Page 2: Prediction form
-elif page == "predict":
-    st.title("📊 Predict Employee Income")
-
+    # Input form
     def user_input():
         age = st.number_input("Age", 18, 100, 30)
         workclass = st.selectbox("Workclass", original_values['workclass'])
@@ -94,11 +92,11 @@ elif page == "predict":
 
     input_df = user_input()
 
-    if st.button("🎯 Predict Income"):
+    if st.button("Predict Income"):
         prediction = model.predict(input_df)[0]
-        income_label = label_encoders['income'].inverse_transform([prediction])[0]
-        st.success(f"🧾 Predicted Income: {income_label}")
+        result = label_encoders['income'].inverse_transform([prediction])[0]
+        st.success(f"🧾 Predicted Income: {result}")
 
-    st.markdown("---")
-    if st.button("⬅️ Back to Home"):
-        st.switch_page("?page=home")
+    if st.button("🔙 Back to Home"):
+        st.session_state.page = 'welcome'
+        st.experimental_rerun()
