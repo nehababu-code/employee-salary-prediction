@@ -1,41 +1,77 @@
-# 💼 Employee Salary Predictor
+# 💼 Employee Salary Prediction App
 
-Welcome to the Employee Salary Predictor!  
-This is a machine learning web app built with **Streamlit** that predicts whether an employee earns more than \$50K per year based on various features like age, education, occupation, and more.
+This Streamlit web application predicts whether an employee earns more than **$50K/year** based on demographic and work-related inputs.
 
 ---
 
 ## 🚀 Features
 
-- Clean 2-page UI with a welcome screen and prediction form
-- Predicts income using a trained **Random Forest Classifier**
-- Uses dropdowns and sliders for easy data input
-- Built with **Streamlit**, **pandas**, and **scikit-learn**
+- Clean and modern web interface
+- Predicts income level using a **Random Forest Classifier**
+- Input fields include age, education, occupation, and more
+- Dynamic dropdowns that update from your data
+- Easy to deploy on **Streamlit Cloud**
 
 ---
 
-## 🖼️ Preview
+## 📁 Files
 
-![Banner](banner.jpg)
-
----
-
-## 📂 Files in This Repository
-
-| File              | Description                              |
-|-------------------|------------------------------------------|
-| `app.py`          | Main Streamlit app code                  |
-| `adult 3.csv`     | Dataset used for training the model      |
-| `banner.jpg`      | Welcome banner displayed on the homepage|
-| `requirements.txt`| Python packages required                 |
-| `README.md`       | You're reading it!                       |
+| File/Folder     | Description                                      |
+|------------------|--------------------------------------------------|
+| `app.py`         | Main Streamlit app file                         |
+| `adult 3.csv`    | Dataset used for training                       |
+| `banner.jpg`     | Optional banner image for homepage              |
+| `README.md`      | This file                                       |
+| `requirements.txt` | Required Python packages for Streamlit Cloud |
 
 ---
 
-## ▶️ Run It Yourself (Locally)
+## 🛠️ How to Run Locally
 
-1. Clone this repo:
-   ```bash
-   git clone https://github.com/your-username/employee-salary-prediction.git
-   cd employee-salary-prediction
-# employee-salary-prediction
+1. **Install dependencies** (create a virtual environment if you prefer):
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+2. **Place your files**:
+    - `app.py`
+    - `adult 3.csv`
+    - (Optional) `banner.jpg` for homepage image
+
+3. **Run the app**:
+
+    ```bash
+    streamlit run app.py
+    ```
+
+4. Visit `http://localhost:8501` in your browser.
+
+---
+
+## 🌐 Deployment on Streamlit Cloud
+
+1. Push all files to your **GitHub repo** (including `app.py`, `adult 3.csv`, `banner.jpg`, `requirements.txt`)
+2. Go to [https://streamlit.io/cloud](https://streamlit.io/cloud)
+3. Connect your GitHub repository
+4. Select `app.py` as the main file and click **Deploy**
+
+---
+
+## 📸 Preview
+
+- **Homepage**: Shows a welcome image with a button "🔍 Predict Salary"
+- **Prediction Page**: Takes input fields and shows the predicted income class.
+
+---
+
+## 🤝 Credits
+
+Built with ❤️ using [Streamlit](https://streamlit.io/) and [scikit-learn](https://scikit-learn.org/).
+
+---
+
+## 📄 License
+
+This project is open-source and free to use for educational and personal purposes.
+
